@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indifference Curves &amp; Budget Constraint</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #eceff4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 1.22rem;
+      font-weight: 600;
+      color: #0d1b5e;
+      margin-bottom: 16px;
+      letter-spacing: -0.2px;
+    }
+    #app {
+      display: flex;
+      gap: 22px;
+      align-items: flex-start;
+    }
+    #graph-wrap {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.11);
+      padding: 8px 8px 5px;
+    }
+    #panel {
+      width: 260px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 14px rgba(0,0,0,0.11);
+      padding: 18px 16px 16px;
+    }
+    .sg { margin-bottom: 19px; }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 5px;
+    }
+    .lbl { font-size: 0.875rem; font-weight: 500; color: #333; }
+    .val {
+      font-size: 0.96rem; font-weight: 700;
+      color: #0d1b5e;
+      font-variant-numeric: tabular-nums;
+      min-width: 38px; text-align: right;
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: #1a237e;
+      cursor: pointer;
+    }
+    .info {
+      margin-top: 4px;
+      padding: 11px 12px;
+      background: #f2f5ff;
+      border-radius: 7px;
+      font-size: 0.82rem;
+      line-height: 1.85;
+      color: #444;
+    }
+    .info .v { color: #cc5500; font-weight: 700; }
+    .toggle-group {
+      display: flex;
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1.5px solid #c0c8e8;
+      margin-bottom: 16px;
+    }
+    .toggle-group input[type=radio] { display: none; }
+    .toggle-group label {
+      flex: 1;
+      text-align: center;
+      padding: 6px 4px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: #555;
+      cursor: pointer;
+      background: white;
+      line-height: 1.3;
+      user-select: none;
+    }
+    .toggle-group label:not(:last-child) { border-right: 1px solid #c0c8e8; }
+    .toggle-group input:checked + label { background: #1a237e; color: white; }
+    #rho-row.hidden { display: none; }
+    #lock-row { display: flex; gap: 6px; margin-bottom: 14px; }
+    .lock-btn {
+      flex: 1;
+      padding: 7px 0;
+      border-radius: 7px;
+      border: 1.5px solid #c0c8e8;
+      background: white;
+      color: #555;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.1px;
+    }
+    .lock-btn:disabled { opacity: 0.45; pointer-events: none; }
+    .lock-btn.locked { background: #cc2200; color: white; border-color: #cc2200; }
+    .lock-btn.active { background: #d96000; color: white; border-color: #d96000; }
+    .demand-btn {
+      width: 100%;
+      padding: 7px 0;
+      border-radius: 7px;
+      border: 1.5px solid #c0c8e8;
+      background: white;
+      color: #555;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 14px;
+      letter-spacing: 0.1px;
+    }
+    .demand-btn.active { background: #1a237e; color: white; border-color: #1a237e; }
+    .toggle-group.dmLocked { opacity: 0.38; pointer-events: none; }
+    #demand-wrap { display: none; margin-bottom: 14px; }
+    #demand-wrap svg { display: block; }
+  </style>
+</head>
+<body>
+
+<h1>Utility Maximization: Indifference Curves &amp; Budget Constraint</h1>
+
+<div id="app">
+  <div id="graph-wrap">
+    <svg id="graph" width="590" height="548"></svg>
+  </div>
+  <div id="panel">
+    <div class="toggle-group">
+      <input type="radio" name="mode" id="mG1" value="g1inf">
+      <label for="mG1">Good 1<br>inferior</label>
+      <input type="radio" name="mode" id="mNorm" value="normal" checked>
+      <label for="mNorm">Both<br>normal</label>
+      <input type="radio" name="mode" id="mG2" value="g2inf">
+      <label for="mG2">Good 2<br>inferior</label>
+    </div>
+    <button id="btnDemand" class="demand-btn">Demand Curve Mode</button>
+    <div id="sliders-wrap">
+      <div id="lock-row">
+        <button id="btnLock" class="lock-btn">Lock</button>
+        <button id="btnIESE" class="lock-btn" disabled>SE / IE</button>
+      </div>
+      <div class="sg">
+        <div class="row">
+          <span class="lbl">Budget (<em>I</em>)</span>
+          <span class="val" id="vI">120</span>
+        </div>
+        <input type="range" id="sI" min="10" max="220" step="5" value="120">
+      </div>
+      <div class="sg">
+        <div class="row">
+          <span class="lbl">Price of Good 1 (<em>p</em>₁)</span>
+          <span class="val" id="vp1">1.00</span>
+        </div>
+        <input type="range" id="sp1" min="0.30" max="3.00" step="0.05" value="1.00">
+      </div>
+      <div class="sg">
+        <div class="row">
+          <span class="lbl">Price of Good 2 (<em>p</em>₂)</span>
+          <span class="val" id="vp2">1.00</span>
+        </div>
+        <input type="range" id="sp2" min="0.30" max="3.00" step="0.05" value="1.00">
+      </div>
+      <div class="sg" id="rho-row">
+        <div class="row">
+          <span class="lbl" style="font-size:0.82rem">Substitutes ←→ Complements</span>
+        </div>
+        <input type="range" id="srho" min="0" max="100" step="1" value="50">
+        <div style="position:relative;height:14px;margin-top:1px">
+          <div style="position:absolute;left:calc(50% - 0.5px);top:0;width:1px;height:6px;background:#bbb;border-radius:1px"></div>
+          <span style="position:absolute;left:50%;transform:translateX(-50%);top:6px;font-size:0.68rem;color:#aaa;white-space:nowrap">unrelated</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#888;margin-top:2px">
+          <span>straight</span><span>L-shaped</span>
+        </div>
+      </div>
+    </div>
+    <div id="demand-wrap">
+      <svg id="dcurve" width="228" height="200"></svg>
+      <div class="sg" style="margin-top:8px;margin-bottom:8px">
+        <div class="row">
+          <span class="lbl">Price of Good 1 (<em>p</em>₁)</span>
+          <span class="val" id="dvdp1">1.00</span>
+        </div>
+        <input type="range" id="dsp1" min="0.30" max="3.00" step="0.05" value="1.00">
+      </div>
+      <div style="font-size:0.77rem;color:#888;margin-bottom:4px">
+        Frozen: <em>I</em> = <span id="dem-frozenI">—</span>, <em>p</em>₂ = <span id="dem-frozenP2">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SVG helpers ──────────────────────────────────────────────────────────────
+
+function el(tag, attrs) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  sa(e, attrs);
+  return e;
+}
+
+function sa(e, attrs) {
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+}
+
+function txt(x, y, text, size, fill, anchor) {
+  const e = el('text', { x, y, 'font-size': size, fill, 'text-anchor': anchor });
+  e.textContent = text;
+  return e;
+}
+
+// ── Layout constants ─────────────────────────────────────────────────────────
+
+const SW = 590, SH = 548;
+const ML = 58, MR = 18, MT = 18, MB = 54;
+const GW = SW - ML - MR;   // 514 px
+const GH = SH - MT - MB;   // 476 px
+
+// Data → SVG pixel  (data range 0–300 on each axis)
+const px = x => ML + (x / 300) * GW;
+const py = y => MT + GH - (y / 300) * GH;
+
+// ── ICs ──────────────────────────────────────────────────────────────────────
+// Utility: Cobb-Douglas  U = sqrt(x1 * x2),  IC: x2 = U² / x1
+
+const N_IC  = 54;
+const U_MIN = 2.4,  U_MAX = 294;
+
+// 54 log-spaced utility levels
+const icLevels = Array.from({ length: N_IC }, (_, k) =>
+  U_MIN * Math.pow(U_MAX / U_MIN, k / (N_IC - 1))
+);
+
+// Optimal utility at given prices and budget
+const Uopt = (I, p1, p2) => I / (2 * Math.sqrt(p1 * p2));
+
+// Index of IC closest to U* (in log space → equal perceptual distance)
+function activeK(U) {
+  const logU = Math.log(Math.max(U, 0.01));
+  let best = 0, bestD = Infinity;
+  for (let k = 0; k < N_IC; k++) {
+    const d = Math.abs(Math.log(icLevels[k]) - logU);
+    if (d < bestD) { bestD = d; best = k; }
+  }
+  return best;
+}
+
+// ── Inferior-good IC family ───────────────────────────────────────────────────
+// Utility: U(x1,x2) = sqrt(x2² + 2·C·ln(x1))  →  inferior x1
+//          V(x1,x2) = sqrt(x1² + 2·C·ln(x2))  →  inferior x2
+// MRS for U = C/(x1·x2) = p1/p2  →  x1* = [I - √(I²−4C·p2²)] / (2p1)
+// As I↑ x1* falls → genuinely inferior.  ICs are x2 = √(U² − 2C·ln(x1)).
+
+const C_INF    = 1600;   // controls curvature; I_min = 2√C·p2 ≈ 80 at p2=1
+const U_MIN_INF = 60, U_MAX_INF = 500;
+const icLevels_inf = Array.from({ length: N_IC }, (_, k) =>
+  U_MIN_INF * Math.pow(U_MAX_INF / U_MIN_INF, k / (N_IC - 1))
+);
+
+function activeK_inf(U) {
+  const logU = Math.log(Math.max(U, 0.01));
+  let best = 0, bestD = Infinity;
+  for (let k = 0; k < N_IC; k++) {
+    const d = Math.abs(Math.log(icLevels_inf[k]) - logU);
+    if (d < bestD) { bestD = d; best = k; }
+  }
+  return best;
+}
+
+// Utility levels at a point
+function infU_g1(x1, x2) {
+  if (x1 <= 0) return 0;
+  const v = x2 * x2 + 2 * C_INF * Math.log(x1);
+  return v > 0 ? Math.sqrt(v) : 0;
+}
+function infU_g2(x1, x2) {
+  if (x2 <= 0) return 0;
+  const v = x1 * x1 + 2 * C_INF * Math.log(x2);
+  return v > 0 ? Math.sqrt(v) : 0;
+}
+
+// Optimal bundles (analytically from MRS = p1/p2 + budget constraint)
+function infOptBundle_g1(I, p1, p2) {
+  const disc = I * I - 4 * C_INF * p2 * p2;
+  if (disc < 0) return { x1: 0.001, x2: I / p2, corner: true };
+  const x1 = (I - Math.sqrt(disc)) / (2 * p1);
+  if (x1 <= 0) return { x1: 0.001, x2: I / p2, corner: true };
+  const x2 = (I - p1 * x1) / p2;
+  return { x1: Math.max(x1, 0.001), x2: Math.max(x2, 0.001), corner: false };
+}
+function infOptBundle_g2(I, p1, p2) {
+  // By symmetry: swap x1↔x2, p1↔p2
+  const disc = I * I - 4 * C_INF * p1 * p1;
+  if (disc < 0) return { x1: I / p1, x2: 0.001, corner: true };
+  const x2 = (I - Math.sqrt(disc)) / (2 * p2);
+  if (x2 <= 0) return { x1: I / p1, x2: 0.001, corner: true };
+  const x1 = (I - p2 * x2) / p1;
+  return { x1: Math.max(x1, 0.001), x2: Math.max(x2, 0.001), corner: false };
+}
+
+// Trace IC for inferior mode
+function traceICInf_g1(U) {
+  // x2 = sqrt(U² − 2C·ln(x1)), exists for x1 ∈ (0, exp(U²/(2C)))
+  const x1max_raw = Math.exp((U * U) / (2 * C_INF));
+  const x1hi = Math.min(x1max_raw * 0.9999, 300);
+  const x1lo = 0.04;
+  if (x1hi < x1lo + 0.01) return '';
+  let d = '', first = true;
+  for (let i = 0; i <= 300; i++) {
+    const x1 = x1lo * Math.pow(x1hi / x1lo, i / 300);
+    const v  = U * U - 2 * C_INF * Math.log(x1);
+    if (v < 0) break;
+    const x2 = Math.sqrt(v);
+    if (x2 > 300.5) { first = true; continue; }
+    d += first ? `M${px(x1).toFixed(1)},${py(x2).toFixed(1)}`
+               : ` L${px(x1).toFixed(1)},${py(x2).toFixed(1)}`;
+    first = false;
+  }
+  return d;
+}
+function traceICInf_g2(U) {
+  // x1 = sqrt(U² − 2C·ln(x2)), exists for x2 ∈ (0, exp(U²/(2C)))
+  const x2max_raw = Math.exp((U * U) / (2 * C_INF));
+  const x2hi = Math.min(x2max_raw * 0.9999, 300);
+  const x2lo = 0.04;
+  if (x2hi < x2lo + 0.01) return '';
+  let d = '', first = true;
+  for (let i = 0; i <= 300; i++) {
+    const x2 = x2lo * Math.pow(x2hi / x2lo, i / 300);
+    const v  = U * U - 2 * C_INF * Math.log(x2);
+    if (v < 0) break;
+    const x1 = Math.sqrt(v);
+    if (x1 > 300.5) { first = true; continue; }
+    d += first ? `M${px(x1).toFixed(1)},${py(x2).toFixed(1)}`
+               : ` L${px(x1).toFixed(1)},${py(x2).toFixed(1)}`;
+    first = false;
+  }
+  return d;
+}
+
+// ── Inferior-mode snap ────────────────────────────────────────────────────────
+// Given IC level Uk and prices, find the tangency point (x1t, x2t) on the IC
+// where MRS = p1/p2, then return the budget-line intercepts.
+// Tangency condition: C/(x1t·x2t) = p1/p2  →  x1t·x2t = C·p2/p1
+// On IC:             x2t = sqrt(Uk² − 2C·ln(x1t))
+// Combined:          h(x1) ≡ x1·sqrt(Uk²−2C·ln(x1)) = C·p2/p1
+// h peaks at x1_pk = exp((Uk²−C)/(2C)) with h_pk = x1_pk·√C
+
+function infSnap_g1(Uk, p1, p2) {
+  const C      = C_INF;
+  const target = C * p2 / p1;
+  const x1_pk  = Math.exp((Uk * Uk - C) / (2 * C));
+  const h_pk   = x1_pk * Math.sqrt(C);
+  if (h_pk < target * 0.9999) return null;   // no interior tangency
+
+  const h = x1 => {
+    const v = Uk * Uk - 2 * C * Math.log(x1);
+    return v > 0 ? x1 * Math.sqrt(v) : 0;
+  };
+
+  // Bisect for the SMALLER root (inferior branch: x1 < x1_pk)
+  let lo = 1e-4, hi = x1_pk;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (h(mid) < target) lo = mid; else hi = mid;
+  }
+  const x1t    = (lo + hi) / 2;
+  const v      = Uk * Uk - 2 * C * Math.log(x1t);
+  const x2t    = v > 0 ? Math.sqrt(v) : 0;
+  const I_snap = p1 * x1t + p2 * x2t;
+  return { x1s: I_snap / p1, x2s: I_snap / p2, x1t, x2t };
+}
+
+function infSnap_g2(Uk, p1, p2) {
+  const r = infSnap_g1(Uk, p2, p1);   // swap roles of x1 and x2
+  return r ? { x1s: r.x2s, x2s: r.x1s, x1t: r.x2t, x2t: r.x1t } : null;
+}
+
+// Fixed-intercept snaps for price-change pivoting
+// ─ g1inf, fix y-intercept y0 (p1 changed): x2t from quadratic C/x2t = y0−x2t
+function infSnap_fixedY_g1(Uk, y0) {
+  const C = C_INF;
+  const disc = y0 * y0 - 4 * C;
+  if (disc < 0) return null;
+  const x2t = (y0 + Math.sqrt(disc)) / 2;   // inferior branch
+  const v   = Uk * Uk - x2t * x2t;
+  if (v < 0) return null;
+  const x1t = Math.exp(v / (2 * C));
+  const x1s = y0 * x1t / (y0 - x2t);
+  return { x1s, x2s: y0, x1t, x2t };
+}
+
+// ─ g1inf, fix x-intercept x0 (p2 changed): bisect x1t*(Uk²+C−2C·ln x1t) = C·x0
+function infSnap_fixedX_g1(Uk, x0) {
+  const C = C_INF;
+  const g = x1 => x1 * (Uk * Uk + C - 2 * C * Math.log(x1)) - C * x0;
+  const lo0 = 1e-4, hi0 = Math.exp(Uk * Uk / (2 * C)) * 0.9999;
+  if (!(g(lo0) * g(hi0) <= 0)) return null;
+  let lo = lo0, hi = hi0;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (g(lo) * g(mid) <= 0) hi = mid; else lo = mid;
+  }
+  const x1t = (lo + hi) / 2;
+  const v   = Uk * Uk - 2 * C * Math.log(x1t);
+  const x2t = v > 0 ? Math.sqrt(v) : 0;
+  const x2s = x2t * x0 / (x0 - x1t);
+  return { x1s: x0, x2s, x1t, x2t };
+}
+
+// ─ g2inf: by x1↔x2 symmetry
+function infSnap_fixedX_g2(Uk, x0) {
+  const r = infSnap_fixedY_g1(Uk, x0);
+  return r ? { x1s: r.x2s, x2s: r.x1s, x1t: r.x2t, x2t: r.x1t } : null;
+}
+function infSnap_fixedY_g2(Uk, y0) {
+  const r = infSnap_fixedX_g1(Uk, y0);
+  return r ? { x1s: r.x2s, x2s: r.x1s, x1t: r.x2t, x2t: r.x1t } : null;
+}
+
+// ── CES utility ──────────────────────────────────────────────────────────────
+// U = (0.5·x1^ρ + 0.5·x2^ρ)^(1/ρ),  ρ→0: Cobb-Douglas, ρ→1: perfect subs, ρ→-∞: perfect comps
+// Slider v in [0,100]: v=0 → ρ=0.88 (near-subs), v=50 → ρ=0 (CD), v=100 → ρ=-6 (near-comps)
+
+function getRho(v) {
+  if (v <= 50) return 0.88 * (1 - v / 50);   // 0.88 → 0  (substitutes side)
+  return -6 * ((v - 50) / 50);               // 0 → -6  (complements side)
+}
+
+function cesU(x1, x2, rho) {
+  if (Math.abs(rho) < 1e-6) return Math.sqrt(x1 * x2);  // Cobb-Douglas limit
+  return Math.pow(0.5 * Math.pow(x1, rho) + 0.5 * Math.pow(x2, rho), 1 / rho);
+}
+
+// Optimal x1, x2 for CES with equal shares (α=0.5)
+// From FOC: x2/x1 = (p1/p2)^(1/(ρ-1))
+function cesOptBundle(I, p1, p2, rho) {
+  if (Math.abs(rho) < 1e-6) {
+    return { x1: I / (2 * p1), x2: I / (2 * p2) };
+  }
+  const exp = 1 / (1 - rho);
+  const ratio = Math.pow(p1 / p2, exp);  // x2 = ratio * x1
+  const x1 = I / (p1 + p2 * ratio);
+  return { x1, x2: ratio * x1 };
+}
+
+function cesUopt(I, p1, p2, rho) {
+  const { x1, x2 } = cesOptBundle(I, p1, p2, rho);
+  return cesU(x1, x2, rho);
+}
+
+// Build SVG path for one IC, handling all rho values.
+function traceIC(U, rho) {
+  if (Math.abs(rho) < 1e-6) {
+    // Cobb-Douglas: x2 = U²/x1, log-spaced x1
+    const x1lo = Math.max(0.4, (U * U) / 300);
+    if (x1lo >= 300) return '';
+    let d = '', first = true;
+    for (let i = 0; i <= 200; i++) {
+      const x1 = x1lo * Math.pow(300 / x1lo, i / 200);
+      const x2 = (U * U) / x1;
+      d += first ? `M${px(x1).toFixed(1)},${py(Math.min(x2,300)).toFixed(1)}` :
+                   ` L${px(x1).toFixed(1)},${py(Math.min(x2,300)).toFixed(1)}`;
+      first = false;
+    }
+    return d;
+  }
+
+  if (rho > 0) {
+    // Substitutes: IC is a bounded arc. endpt = U·2^(1/ρ) is the theoretical x1-intercept.
+    // For small rho (near CD) endpt is huge — IC still fills the viewport like a hyperbola.
+    // Use log spacing (same as CD branch) from x1_where_x2=300 to min(endpt, 300).
+    const endpt = U * Math.pow(2, 1 / rho);
+    const x1right = Math.min(endpt * 0.9999, 300);
+
+    // x1 where x2 = 300: x1^ρ = 2·U^ρ − 300^ρ
+    const lhs = 2 * Math.pow(U, rho) - Math.pow(300, rho);
+    const x1left = lhs > 0 ? Math.max(0.01, Math.pow(lhs, 1 / rho)) : 0.01;
+
+    if (x1left >= x1right) return '';
+
+    let d = '', first = true;
+    for (let i = 0; i <= 200; i++) {
+      const x1 = x1left * Math.pow(x1right / x1left, i / 200);
+      const inner = Math.pow(U, rho) - 0.5 * Math.pow(x1, rho);
+      if (inner <= 0) break;
+      const x2 = Math.pow(2 * inner, 1 / rho);
+      if (x2 > 300.5) { first = true; continue; }
+      if (x2 < 0.001) break;
+      d += first ? `M${px(x1).toFixed(1)},${py(x2).toFixed(1)}` :
+                   ` L${px(x1).toFixed(1)},${py(x2).toFixed(1)}`;
+      first = false;
+    }
+    return d;
+  }
+
+  // Complements (rho < 0): IC only exists for x1 > x1min = U·2^(1/ρ).
+  // Since rho<0, 2^(1/rho) ∈ (0,1), so x1min < U. Start just above x1min.
+  const x1min = U * Math.pow(2, 1 / rho);
+  let x1lo = Math.max(x1min * 1.001, 0.01);
+  if (x1lo >= 300) return '';
+
+  // If the IC reaches x2=300, start exactly there (mirrors the substitutes branch).
+  // Solving x2=300: x1_top = (2·U^ρ − 300^ρ)^(1/ρ)
+  const lhsTop = 2 * Math.pow(U, rho) - Math.pow(300, rho);
+  if (lhsTop > 0) {
+    const x1top = Math.pow(lhsTop, 1 / rho);
+    if (isFinite(x1top) && x1top > x1lo) x1lo = x1top;
+  }
+
+  let d = '', first = true;
+  for (let i = 0; i <= 300; i++) {
+    const x1 = x1lo * Math.pow(300 / x1lo, i / 300);
+    const inner = Math.pow(U, rho) - 0.5 * Math.pow(x1, rho);
+    if (!isFinite(inner) || inner <= 0) continue;
+    const x2 = Math.pow(2 * inner, 1 / rho);
+    if (!isFinite(x2) || x2 > 300.5) continue;
+    if (x2 < 0.001) break;
+    d += first ? `M${px(x1).toFixed(1)},${py(x2).toFixed(1)}` :
+                 ` L${px(x1).toFixed(1)},${py(x2).toFixed(1)}`;
+    first = false;
+  }
+  return d;
+}
+
+// Visual style for IC at index-distance `dist` from active IC.
+// Returns [strokeColor, strokeWidth, opacity]
+function icStyle(dist) {
+  if (dist === 0)  return ['#1565c0', 2.8,  1.00];
+  if (dist === 1)  return ['#3d88d4', 1.60, 0.94];
+  if (dist === 2)  return ['#5c9edc', 1.25, 0.89];
+  if (dist === 3)  return ['#78b2e4', 1.05, 0.85];
+  if (dist <= 5)   return ['#92c2ea', 0.90, 0.81];
+  if (dist <= 8)   return ['#aaceef', 0.80, 0.78];
+  if (dist <= 12)  return ['#bed8f2', 0.74, 0.76];
+                   return ['#cce0f4', 0.70, 0.74];
+}
+
+// ── IC path cache (re-trace when rho changes) ────────────────────────────────
+
+let cachedRho = 0;
+let cachedDrawMode = 'normal';   // tracks which IC family currently owns icEls
+let icPathData = icLevels.map(U => traceIC(U, 0));  // default: Cobb-Douglas (slider center)
+
+function ensureIcCache(rho) {
+  if (Math.abs(cachedRho - rho) < 1e-9 && cachedDrawMode === 'normal') return;
+  cachedRho = rho;
+  cachedDrawMode = 'normal';
+  icPathData = icLevels.map(U => traceIC(U, rho));
+  for (let k = 0; k < N_IC; k++) {
+    icEls[k].setAttribute('d', icPathData[k]);
+  }
+}
+
+let cachedInfMode = null;
+function ensureIcCacheInf(mode) {
+  if (cachedInfMode === mode && cachedDrawMode === mode) return;
+  cachedInfMode = mode;
+  cachedDrawMode = mode;
+  const traceFn = mode === 'g1inf' ? traceICInf_g1 : traceICInf_g2;
+  for (let k = 0; k < N_IC; k++) {
+    icEls[k].setAttribute('d', traceFn(icLevels_inf[k]));
+  }
+}
+
+// ── Snap functions ───────────────────────────────────────────────────────────
+
+// Find x2 on IC Uk at given x1, for CES utility (Newton solve is overkill; direct formula)
+function cesX2fromX1(x1, Uk, rho) {
+  if (Math.abs(rho) < 1e-6) return Uk * Uk / x1;
+  const inner = Math.pow(Uk, rho) - 0.5 * Math.pow(x1, rho);
+  if (inner <= 0) return null;
+  return Math.pow(2 * inner, 1 / rho);
+}
+
+// Budget snap: find symmetric tangent point on IC Uk given price ratio
+// For CES, solve numerically: minimize |p1*x1 + p2*x2 - budget| subject to U(x1,x2)=Uk
+// Equivalently: find x1 where d/dx1 [p1*x1 + p2*x2(x1)] = 0
+// p1 + p2 * dx2/dx1 = 0  →  dx2/dx1 = -p1/p2
+// For CES: dx2/dx1 = -(x2/x1)^(1-rho)  [from implicit differentiation]
+// So tangency: (x2/x1)^(1-rho) = p1/p2  →  x2/x1 = (p1/p2)^(1/(1-rho))
+// This gives the same ratio as cesOptBundle — good check.
+function cesSnap_budget(Uk, p1, p2, rho) {
+  if (Math.abs(rho) < 1e-6) {
+    const x1t = Uk * Math.sqrt(p2 / p1);
+    const x2t = Uk * Math.sqrt(p1 / p2);
+    return { x1s: 2 * x1t, x2s: 2 * x2t, x1t, x2t };
+  }
+  const exp = 1 / (1 - rho);
+  const ratio = Math.pow(p1 / p2, exp);   // x2 = ratio * x1 at tangency
+  // Solve CES for x1: U = (0.5*x1^ρ + 0.5*(ratio*x1)^ρ)^(1/ρ) = Uk
+  // Uk^ρ = 0.5*x1^ρ*(1 + ratio^ρ)  →  x1 = Uk * (2/(1+ratio^ρ))^(1/ρ)
+  const x1t = Uk * Math.pow(2 / (1 + Math.pow(ratio, rho)), 1 / rho);
+  const x2t = ratio * x1t;
+  // Intercepts: extend line through (x1t, x2t) with slope -p1/p2
+  // x2 = x2t + (p1/p2)*(x1t - x1)  → x-int: x1t + x2t*(p2/p1), y-int: x2t + x1t*(p1/p2)
+  const x1s = x1t + x2t * (p2 / p1);
+  const x2s = x2t + x1t * (p1 / p2);
+  return { x1s, x2s, x1t, x2t };
+}
+
+// Price snap with fixed y-intercept y0: find tangent to IC Uk with x2-intercept = y0
+// Line: x2 = y0 - (slope)*x1; tangency: slope of IC = -p1/p2 (after snap)
+// But here we just need SOME tangent with x2-intercept = y0.
+// Tangency condition: dx2/dx1|IC = -y0/x1s (slope of line through (x1s,0) and (0,y0))
+// For CES: (x2/x1)^(1-rho) = y0/x1s
+// Also x2 = cesX2fromX1(x1t, Uk, rho), and x2/x1 is the ratio at tangency point
+// Bisect: f(x1t) = x1t*(x2t/x1t)^(1-rho) - y0 + x1t ... use direct bisection on x1s
+// Simpler: bisect on x1t ∈ (ε, x1s_max), compute x2t = cesX2(x1t), check tangency slope vs line slope
+function cesSnap_fixedY(Uk, y0, rho) {
+  if (Math.abs(rho) < 1e-6) {
+    const x1s = 4 * Uk * Uk / y0;
+    return { x1s, x2s: y0, x1t: x1s / 2, x2t: y0 / 2 };
+  }
+  // g(x1t) = x2t + x1t*(x2t/x1t)^(1-rho) - y0 = 0 at the tangency point.
+  // rho > 0: IC exists on (0, endpt), g goes +inf → -y0. Always a crossing.
+  // rho < 0: IC exists on (x1min, inf), g goes +inf → (x2_asym - y0). Crossing exists iff y0 > x2_asym.
+  const endpt = Uk * Math.pow(2, 1 / rho);  // > Uk for rho>0, < Uk for rho<0
+  const lo = rho < 0 ? Math.max(endpt * 1.001, 0.01) : 0.001;
+  const hi = rho > 0 ? endpt * 0.9999 : 299;
+
+  const g = x1t => {
+    const x2t = cesX2fromX1(x1t, Uk, rho);
+    if (x2t === null || !isFinite(x2t) || x2t <= 0) return Infinity;
+    return x2t + x1t * Math.pow(x2t / x1t, 1 - rho) - y0;
+  };
+  const glo = g(lo), ghi = g(hi);
+  if (!isFinite(glo) || !isFinite(ghi) || glo * ghi > 0) {
+    // No interior tangency (corner solution for strong substitutes, or asymptote below y0).
+    // Find the IC point minimizing |g| — gives the nearest-to-tangent point on the curve.
+    let bestX1t = lo, bestAbs = Infinity;
+    for (let i = 0; i <= 60; i++) {
+      const x1_try = lo * Math.pow(hi / lo, i / 60);
+      const ag = Math.abs(g(x1_try));
+      if (isFinite(ag) && ag < bestAbs) { bestAbs = ag; bestX1t = x1_try; }
+    }
+    const x1t = bestX1t;
+    const x2t = cesX2fromX1(x1t, Uk, rho);
+    if (!x2t) { const s = cesSnap_budget(Uk, 1, 1, rho); return { x1s: s.x1s, x2s: y0, x1t: s.x1t, x2t: s.x2t }; }
+    const x1s_fb = y0 / Math.pow(x2t / x1t, 1 - rho);
+    return { x1s: x1s_fb, x2s: y0, x1t, x2t };
+  }
+  let a = lo, b = hi;
+  for (let iter = 0; iter < 60; iter++) {
+    const mid = (a + b) / 2;
+    if (g(a) * g(mid) <= 0) b = mid; else a = mid;
+  }
+  const x1t = (a + b) / 2;
+  const x2t = cesX2fromX1(x1t, Uk, rho);
+  const x1s = y0 / Math.pow(x2t / x1t, 1 - rho);
+  return { x1s, x2s: y0, x1t, x2t };
+}
+
+// Price snap with fixed x-intercept x0: by symmetry, swap x1↔x2 roles
+function cesSnap_fixedX(Uk, x0, rho) {
+  const result = cesSnap_fixedY(Uk, x0, rho);
+  return { x1s: x0, x2s: result.x1s, x1t: result.x2t, x2t: result.x1t };
+}
+
+
+// ── Build the static SVG skeleton ───────────────────────────────────────────
+
+const svg = document.getElementById('graph');
+
+// Clip path — all drawing inside the graph area
+const defs = el('defs', {});
+defs.innerHTML = `<clipPath id="gc">
+  <rect x="${ML}" y="${MT}" width="${GW}" height="${GH}"/>
+</clipPath>`;
+svg.appendChild(defs);
+
+// Graph background
+svg.appendChild(el('rect', { x: ML, y: MT, width: GW, height: GH,
+  fill: '#f9fbff', stroke: '#c8d0e4', 'stroke-width': 1 }));
+
+// Subtle reference grid
+for (let v = 50; v < 300; v += 50) {
+  svg.appendChild(el('line', { x1: px(v), y1: MT,    x2: px(v), y2: MT+GH,
+    stroke: '#dce5f0', 'stroke-width': 0.75 }));
+  svg.appendChild(el('line', { x1: ML,   y1: py(v),  x2: ML+GW, y2: py(v),
+    stroke: '#dce5f0', 'stroke-width': 0.75 }));
+}
+
+// IC path elements (paths are static; stroke/opacity updated per draw)
+const icEls = icPathData.map(d => {
+  const e = el('path', { d, fill: 'none', 'clip-path': 'url(#gc)' });
+  svg.appendChild(e);
+  return e;
+});
+
+// Axes (drawn after ICs so they're always on top)
+svg.appendChild(el('line', { x1: ML, y1: MT+GH, x2: ML+GW, y2: MT+GH,
+  stroke: '#1a1a2e', 'stroke-width': 1.9 }));
+svg.appendChild(el('line', { x1: ML, y1: MT,    x2: ML,    y2: MT+GH,
+  stroke: '#1a1a2e', 'stroke-width': 1.9 }));
+
+// Tick marks and numeric labels
+for (let v = 50; v <= 300; v += 50) {
+  svg.appendChild(el('line', { x1: px(v), y1: MT+GH,   x2: px(v), y2: MT+GH+5,
+    stroke: '#444', 'stroke-width': 1.2 }));
+  svg.appendChild(txt(px(v), MT+GH+17, v, '11px', '#555', 'middle'));
+  svg.appendChild(el('line', { x1: ML-5, y1: py(v), x2: ML, y2: py(v),
+    stroke: '#444', 'stroke-width': 1.2 }));
+  svg.appendChild(txt(ML-9, py(v)+4, v, '11px', '#555', 'end'));
+}
+
+// Axis labels
+svg.appendChild(txt(ML + GW/2, SH - 8, 'Good 1  (x₁)', '13px', '#333', 'middle'));
+const ylEl = el('text', {
+  'font-size': '13px', fill: '#333', 'text-anchor': 'middle',
+  transform: `translate(14,${MT + GH/2}) rotate(-90)`
+});
+ylEl.textContent = 'Good 2  (x₂)';
+svg.appendChild(ylEl);
+
+// ── Mutable elements (updated on each draw) ──────────────────────────────────
+// Budget lines: locked (red) → compensated (orange) → current (gold), bottom to top
+
+const bcLocked = el('line', { stroke: '#cc2200', 'stroke-width': 2.2,
+  'stroke-linecap': 'round', 'clip-path': 'url(#gc)', display: 'none' });
+svg.appendChild(bcLocked);
+const bcComp = el('line', { stroke: '#d96000', 'stroke-width': 2.2,
+  'stroke-linecap': 'round', 'clip-path': 'url(#gc)', display: 'none' });
+svg.appendChild(bcComp);
+const bcEl = el('line', { stroke: '#c8960c', 'stroke-width': 2.5,
+  'stroke-linecap': 'round', 'clip-path': 'url(#gc)' });
+svg.appendChild(bcEl);
+
+// Intercept dots on axes (match current gold)
+const d1 = el('circle', { r: 5, fill: '#c8960c' });
+const d2 = el('circle', { r: 5, fill: '#c8960c' });
+const l1 = el('text', { 'font-size': '11px', fill: '#c8960c', 'text-anchor': 'middle' });
+const l2 = el('text', { 'font-size': '11px', fill: '#c8960c', 'text-anchor': 'end' });
+
+// Bundle dots: locked (red) → compensated (orange) → current (gold)
+const odLocked = el('circle', { r: 6,   fill: '#cc2200', stroke: 'white', 'stroke-width': 2, display: 'none' });
+const odComp   = el('circle', { r: 6,   fill: '#d96000', stroke: 'white', 'stroke-width': 2, display: 'none' });
+const od       = el('circle', { r: 6.5, fill: '#c8960c', stroke: 'white', 'stroke-width': 2 });
+
+svg.appendChild(d1); svg.appendChild(d2);
+svg.appendChild(l1); svg.appendChild(l2);
+svg.appendChild(odLocked); svg.appendChild(odComp);
+svg.appendChild(od);
+
+// ── draw() ───────────────────────────────────────────────────────────────────
+
+function draw() {
+  const I    = +document.getElementById('sI').value;
+  const p1   = +document.getElementById('sp1').value;
+  const p2   = +document.getElementById('sp2').value;
+  const rhoV = +document.getElementById('srho').value;
+  const rho  = goodMode === 'normal' ? getRho(rhoV) : 0;
+
+  document.getElementById('vI').textContent  = I;
+  document.getElementById('vp1').textContent = p1.toFixed(2);
+  document.getElementById('vp2').textContent = p2.toFixed(2);
+
+  let U, ak, x1s, x2s, x1o, x2o;
+  let infCorner = false;
+
+  if (goodMode !== 'normal') {
+    ensureIcCacheInf(goodMode);
+    const b = goodMode === 'g1inf'
+      ? infOptBundle_g1(I, p1, p2)
+      : infOptBundle_g2(I, p1, p2);
+    infCorner = b.corner;
+    U  = infCorner ? 0
+       : (goodMode === 'g1inf' ? infU_g1(b.x1, b.x2) : infU_g2(b.x1, b.x2));
+    ak = infCorner ? 0 : activeK_inf(U);
+
+    // Mirror normal-mode frozen-state logic:
+    // budget line only moves when IC changes or income moves.
+    if (lastMoved === 'I' || ak !== frozenAk_inf) {
+      const Uk = icLevels_inf[ak];
+      let snap = null;
+      if (!infCorner) {
+        if (lastMoved === 'p1') {
+          const y0 = lockedState ? lockedState.x2s : I / p2;
+          snap = goodMode === 'g1inf'
+            ? infSnap_fixedY_g1(Uk, y0)
+            : infSnap_fixedY_g2(Uk, y0);
+        } else if (lastMoved === 'p2') {
+          const x0 = lockedState ? lockedState.x1s : I / p1;
+          snap = goodMode === 'g1inf'
+            ? infSnap_fixedX_g1(Uk, x0)
+            : infSnap_fixedX_g2(Uk, x0);
+        } else {
+          snap = goodMode === 'g1inf'
+            ? infSnap_g1(Uk, p1, p2)
+            : infSnap_g2(Uk, p1, p2);
+        }
+      }
+      if (snap) {
+        frozenX1s_inf = snap.x1s; frozenX2s_inf = snap.x2s;
+        frozenX1t_inf = snap.x1t; frozenX2t_inf = snap.x2t;
+      } else {
+        frozenX1s_inf = I / p1; frozenX2s_inf = I / p2;
+        frozenX1t_inf = b.x1;   frozenX2t_inf = b.x2;
+      }
+      frozenAk_inf = ak;
+    }
+    x1s = frozenX1s_inf; x2s = frozenX2s_inf;
+    x1o = frozenX1t_inf; x2o = frozenX2t_inf;
+  } else {
+    ensureIcCache(rho);
+    U  = cesUopt(I, p1, p2, rho);
+    ak = activeK(U);
+    const Uk = icLevels[ak];
+
+    // Recompute line position when: (a) budget/rho slider moved, or (b) active IC changed.
+    if (lastMoved === 'I' || lastMoved === 'rho' || ak !== frozenAk) {
+      if (lastMoved === 'p1') {
+        const y0 = lockedState ? lockedState.x2s : I / p2;
+        const snap = cesSnap_fixedY(Uk, y0, rho);
+        frozenX1s = snap.x1s; frozenX2s = snap.x2s;
+        frozenX1t = snap.x1t; frozenX2t = snap.x2t;
+      } else if (lastMoved === 'p2') {
+        const x0 = lockedState ? lockedState.x1s : I / p1;
+        const snap = cesSnap_fixedX(Uk, x0, rho);
+        frozenX1s = snap.x1s; frozenX2s = snap.x2s;
+        frozenX1t = snap.x1t; frozenX2t = snap.x2t;
+      } else {
+        const snap = cesSnap_budget(Uk, p1, p2, rho);
+        frozenX1s = snap.x1s; frozenX2s = snap.x2s;
+        frozenX1t = snap.x1t; frozenX2t = snap.x2t;
+      }
+      frozenAk = ak;
+    }
+    x1s = frozenX1s; x2s = frozenX2s;
+    x1o = frozenX1t; x2o = frozenX2t;
+  }
+
+  // Update IC styles
+  for (let k = 0; k < N_IC; k++) {
+    const [stroke, width, opacity] = icStyle(Math.abs(k - ak));
+    sa(icEls[k], { stroke, 'stroke-width': width, opacity });
+  }
+
+  // Budget constraint — red when unlocked, gold when a locked state exists
+  const bcColor = lockedState ? '#c8960c' : '#cc2200';
+  sa(bcEl, { x1: px(x1s), y1: py(0), x2: px(0), y2: py(x2s), stroke: bcColor });
+
+  // x-intercept dot
+  const x1vis = x1s <= 300.5;
+  d1.setAttribute('display', x1vis ? '' : 'none');
+  d1.setAttribute('fill', bcColor);
+  l1.setAttribute('display', 'none');
+  if (x1vis) sa(d1, { cx: px(x1s), cy: py(0) });
+
+  // y-intercept dot
+  const x2vis = x2s <= 300.5;
+  d2.setAttribute('display', x2vis ? '' : 'none');
+  d2.setAttribute('fill', bcColor);
+  l2.setAttribute('display', 'none');
+  if (x2vis) sa(d2, { cx: px(0), cy: py(x2s) });
+
+  // Optimal bundle dot
+  od.setAttribute('fill', bcColor);
+  if (x1o > 0 && x1o <= 300 && x2o > 0 && x2o <= 300) {
+    sa(od, { cx: px(x1o), cy: py(x2o), display: '' });
+  } else {
+    od.setAttribute('display', 'none');
+  }
+
+  // Locked budget line (golden yellow)
+  if (lockedState && !demandMode) {
+    const ls = lockedState;
+    sa(bcLocked, { x1: px(ls.x1s), y1: py(0), x2: px(0), y2: py(ls.x2s) });
+    bcLocked.removeAttribute('display');
+    if (ls.x1t > 0 && ls.x1t <= 300 && ls.x2t > 0 && ls.x2t <= 300) {
+      sa(odLocked, { cx: px(ls.x1t), cy: py(ls.x2t) }); odLocked.removeAttribute('display');
+    } else { odLocked.setAttribute('display', 'none'); }
+  } else {
+    bcLocked.setAttribute('display', 'none');
+    odLocked.setAttribute('display', 'none');
+  }
+
+  // Compensated budget line (orange) — Hicksian SE/IE decomposition
+  if (iesMode && lockedState && !demandMode) {
+    const ls = lockedState;
+    let cs = null;
+    if (ls.goodMode === 'g1inf') {
+      cs = infSnap_g1(icLevels_inf[ls.ak], p1, p2);
+    } else if (ls.goodMode === 'g2inf') {
+      cs = infSnap_g2(icLevels_inf[ls.ak], p1, p2);
+    } else {
+      cs = cesSnap_budget(icLevels[ls.ak], p1, p2, rho);
+    }
+    if (cs) {
+      sa(bcComp, { x1: px(cs.x1s), y1: py(0), x2: px(0), y2: py(cs.x2s) });
+      bcComp.removeAttribute('display');
+      if (cs.x1t > 0 && cs.x1t <= 300 && cs.x2t > 0 && cs.x2t <= 300) {
+        sa(odComp, { cx: px(cs.x1t), cy: py(cs.x2t) }); odComp.removeAttribute('display');
+      } else { odComp.setAttribute('display', 'none'); }
+    } else {
+      bcComp.setAttribute('display', 'none'); odComp.setAttribute('display', 'none');
+    }
+  } else {
+    bcComp.setAttribute('display', 'none');
+    odComp.setAttribute('display', 'none');
+  }
+
+}
+
+// ── Demand curve mode ─────────────────────────────────────────────────────────
+
+let demandMode       = false;
+let demandPoints     = [];
+let demandSnapPoints = new Map(); // key: "akLo_akHi" → {p1, x1}
+let dem_I, dem_p2, dem_rhoV, dem_goodMode, dem_x1max;
+
+const DC_W = 228, DC_H = 200;
+const DC_ML = 38, DC_MR = 6, DC_MT = 12, DC_MB = 28;
+const DC_PW = DC_W - DC_ML - DC_MR;
+const DC_PH = DC_H - DC_MT - DC_MB;
+const DC_P1_MIN = 0.30, DC_P1_MAX = 3.00;
+
+function dpx(x1) { return DC_ML + (x1 / dem_x1max) * DC_PW; }
+function dpy(p1) { return DC_MT + (DC_P1_MAX - p1) / (DC_P1_MAX - DC_P1_MIN) * DC_PH; }
+
+function computeX1star(I, p1, p2, gm, rhoV) {
+  if (gm === 'g1inf') {
+    const b = infOptBundle_g1(I, p1, p2);
+    return b.corner ? 0.001 : b.x1;
+  }
+  if (gm === 'g2inf') {
+    const b = infOptBundle_g2(I, p1, p2);
+    return b.corner ? Math.max(0.001, (I - p2 * 0.001) / p1) : b.x1;
+  }
+  return cesOptBundle(I, p1, p2, getRho(rhoV)).x1;
+}
+
+function niceStep(max, targetTicks) {
+  const raw = max / targetTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1e-9))));
+  const norm = raw / mag;
+  if (norm < 1.5) return mag;
+  if (norm < 3.5) return 2 * mag;
+  if (norm < 7.5) return 5 * mag;
+  return 10 * mag;
+}
+
+function buildDemandSVG() {
+  const svg = document.getElementById('dcurve');
+  svg.innerHTML = '';
+
+  svg.appendChild(el('rect', {
+    x: DC_ML, y: DC_MT, width: DC_PW, height: DC_PH,
+    fill: '#f9fbff', stroke: '#c8d0e4', 'stroke-width': 1
+  }));
+
+  // p1 grid / ticks (y-axis)
+  for (let p = 0.5; p <= DC_P1_MAX + 0.01; p += 0.5) {
+    const y = dpy(p);
+    if (y < DC_MT - 1 || y > DC_MT + DC_PH + 1) continue;
+    svg.appendChild(el('line', { x1: DC_ML, y1: y, x2: DC_ML + DC_PW, y2: y,
+      stroke: '#dce5f0', 'stroke-width': 0.75 }));
+    svg.appendChild(el('line', { x1: DC_ML - 4, y1: y, x2: DC_ML, y2: y,
+      stroke: '#444', 'stroke-width': 1 }));
+    svg.appendChild(txt(DC_ML - 6, y + 3.5, p.toFixed(1), '9.5px', '#555', 'end'));
+  }
+
+  // x1 grid / ticks (x-axis)
+  const xStep = niceStep(dem_x1max, 4);
+  for (let x = xStep; x <= dem_x1max * 1.001; x += xStep) {
+    const xp = dpx(x);
+    svg.appendChild(el('line', { x1: xp, y1: DC_MT, x2: xp, y2: DC_MT + DC_PH,
+      stroke: '#dce5f0', 'stroke-width': 0.75 }));
+    svg.appendChild(el('line', { x1: xp, y1: DC_MT + DC_PH, x2: xp, y2: DC_MT + DC_PH + 4,
+      stroke: '#444', 'stroke-width': 1 }));
+    const lbl = Number.isInteger(x) ? x : x.toFixed(1);
+    svg.appendChild(txt(xp, DC_MT + DC_PH + 14, lbl, '9.5px', '#555', 'middle'));
+  }
+
+  // Axes
+  svg.appendChild(el('line', { x1: DC_ML, y1: DC_MT + DC_PH, x2: DC_ML + DC_PW, y2: DC_MT + DC_PH,
+    stroke: '#1a1a2e', 'stroke-width': 1.6 }));
+  svg.appendChild(el('line', { x1: DC_ML, y1: DC_MT, x2: DC_ML, y2: DC_MT + DC_PH,
+    stroke: '#1a1a2e', 'stroke-width': 1.6 }));
+
+  // Axis labels
+  svg.appendChild(txt(DC_ML + DC_PW / 2, DC_H - 4, 'x₁  (quantity)', '9.5px', '#333', 'middle'));
+  const ylEl = el('text', { 'font-size': '10px', fill: '#333', 'text-anchor': 'middle',
+    transform: `translate(9,${DC_MT + DC_PH / 2}) rotate(-90)` });
+  ylEl.textContent = 'p₁';
+  svg.appendChild(ylEl);
+
+  // Dynamic layers (polyline + dot appended last so they render on top)
+  svg.appendChild(el('polyline', { id: 'dc-trace', fill: 'none',
+    stroke: '#1565c0', 'stroke-width': 2,
+    'stroke-linejoin': 'round', 'stroke-linecap': 'round', points: '' }));
+  svg.appendChild(el('circle', { id: 'dc-dot', r: 5,
+    fill: '#f07020', stroke: 'white', 'stroke-width': 1.5 }));
+}
+
+function updateDemandCurve() {
+  const svg = document.getElementById('dcurve');
+
+  const sorted = [...demandPoints].sort((a, b) => a.p1 - b.p1);
+  const pts = sorted.map(p => `${dpx(p.x1).toFixed(1)},${dpy(p.p1).toFixed(1)}`).join(' ');
+  const trace = document.getElementById('dc-trace');
+  if (trace) trace.setAttribute('points', pts);
+
+  // Redraw snap dots (remove old ones first, insert before current dot)
+  svg.querySelectorAll('.dc-snap').forEach(e => e.remove());
+  const dotEl = document.getElementById('dc-dot');
+  demandSnapPoints.forEach(p => {
+    const c = el('circle', { cx: dpx(p.x1).toFixed(1), cy: dpy(p.p1).toFixed(1),
+      r: 4, fill: '#1565c0', stroke: 'white', 'stroke-width': 1.2, 'class': 'dc-snap' });
+    svg.insertBefore(c, dotEl);
+  });
+
+  const curr = demandPoints[demandPoints.length - 1];
+  if (dotEl && curr) {
+    dotEl.setAttribute('cx', dpx(curr.x1).toFixed(1));
+    dotEl.setAttribute('cy', dpy(curr.p1).toFixed(1));
+  }
+}
+
+function enterDemandMode() {
+  dem_I        = +document.getElementById('sI').value;
+  dem_p2       = +document.getElementById('sp2').value;
+  dem_rhoV     = +document.getElementById('srho').value;
+  dem_goodMode = goodMode;
+
+  const p1curr = +document.getElementById('sp1').value;
+
+  // Auto-scale x-axis: span the full demand range plus 20% headroom
+  const x1atMin = computeX1star(dem_I, DC_P1_MIN, dem_p2, dem_goodMode, dem_rhoV);
+  const x1atMax = computeX1star(dem_I, DC_P1_MAX, dem_p2, dem_goodMode, dem_rhoV);
+  const x1ref   = Math.max(x1atMin, x1atMax,
+                    computeX1star(dem_I, p1curr, dem_p2, dem_goodMode, dem_rhoV), 1);
+  const xStep   = niceStep(x1ref * 1.2, 4);
+  dem_x1max     = Math.ceil(x1ref * 1.2 / xStep) * xStep;
+
+  const x1curr = computeX1star(dem_I, p1curr, dem_p2, dem_goodMode, dem_rhoV);
+  demandPoints     = [{ p1: p1curr, x1: x1curr }];
+  demandSnapPoints = new Map();
+
+  document.getElementById('dsp1').value           = p1curr;
+  document.getElementById('dvdp1').textContent    = p1curr.toFixed(2);
+  document.getElementById('dem-frozenI').textContent  = dem_I;
+  document.getElementById('dem-frozenP2').textContent = dem_p2.toFixed(2);
+
+  document.getElementById('sliders-wrap').style.display = 'none';
+  document.getElementById('demand-wrap').style.display  = 'block';
+  document.getElementById('btnDemand').classList.add('active');
+  document.querySelector('.toggle-group').classList.add('dmLocked');
+
+  buildDemandSVG();
+  updateDemandCurve();
+}
+
+function exitDemandMode() {
+  document.getElementById('sliders-wrap').style.display = '';
+  document.getElementById('demand-wrap').style.display  = 'none';
+  document.getElementById('btnDemand').classList.remove('active');
+  document.querySelector('.toggle-group').classList.remove('dmLocked');
+}
+
+// ── Event listeners ──────────────────────────────────────────────────────────
+
+let lastMoved = 'I';
+let frozenAk  = -1;
+let frozenX1s = null, frozenX2s = null;
+let frozenX1t = null, frozenX2t = null;
+let goodMode  = 'normal';
+
+let frozenAk_inf  = -1;
+let frozenX1s_inf = null, frozenX2s_inf = null;
+let frozenX1t_inf = null, frozenX2t_inf = null;
+
+let lockedState = null;
+let iesMode     = false;
+
+// ── Inferior-mode slider constraints ─────────────────────────────────────────
+// Corner solution occurs when I < 2·√C·p  (p = p2 for g1inf, p1 for g2inf).
+// Keep every slider's min/max so the user can never drag into that region.
+
+const INF_THRESH = 2 * Math.sqrt(C_INF);   // = 80
+
+function enforceInfConstraints() {
+  if (goodMode === 'normal') return;
+  const sI  = document.getElementById('sI');
+  const sp1 = document.getElementById('sp1');
+  const sp2 = document.getElementById('sp2');
+
+  const priceSl = goodMode === 'g1inf' ? sp2 : sp1;  // the "relevant" price slider
+  const priceV  = document.getElementById(goodMode === 'g1inf' ? 'vp2' : 'vp1');
+
+  // I_min: smallest slider step strictly above the critical value
+  const I_crit  = INF_THRESH * +priceSl.value;
+  const I_min   = Math.max(10, Math.ceil(I_crit / 5 + 1e-9) * 5);
+  sI.min = I_min;
+  if (+sI.value < I_min) sI.value = I_min;
+
+  // price_max: largest slider step strictly below the critical value
+  const p_crit  = +sI.value / INF_THRESH;
+  const p_max   = Math.min(3.00, Math.max(0.30,
+                    Math.floor((p_crit - 1e-9) / 0.05) * 0.05));
+  priceSl.max = p_max.toFixed(2);
+  if (+priceSl.value > p_max) priceSl.value = p_max.toFixed(2);
+
+  // The other price slider is unconstrained — restore defaults
+  const otherSl = goodMode === 'g1inf' ? sp1 : sp2;
+  otherSl.min = 0.30; otherSl.max = 3.00;
+}
+
+function resetSliderConstraints() {
+  const sI  = document.getElementById('sI');
+  const sp1 = document.getElementById('sp1');
+  const sp2 = document.getElementById('sp2');
+  sI.min  = 10;   sI.max  = 220;
+  sp1.min = 0.30; sp1.max = 3.00;
+  sp2.min = 0.30; sp2.max = 3.00;
+}
+
+function resetLockUI() {
+  document.getElementById('btnLock').classList.remove('locked');
+  document.getElementById('btnIESE').disabled = true;
+  document.getElementById('btnIESE').classList.remove('active');
+}
+
+document.querySelectorAll('input[name=mode]').forEach(r => {
+  r.addEventListener('change', () => {
+    goodMode     = r.value;
+    lastMoved    = 'I';
+    frozenAk     = -1;
+    frozenAk_inf = -1;
+    if (lockedState) { lockedState = null; iesMode = false; resetLockUI(); }
+    document.getElementById('rho-row').classList.toggle('hidden', goodMode !== 'normal');
+    if (goodMode === 'normal') resetSliderConstraints(); else enforceInfConstraints();
+    draw();
+  });
+});
+
+document.getElementById('sI').addEventListener('input',   () => { enforceInfConstraints(); lastMoved = 'I';   draw(); });
+document.getElementById('sp1').addEventListener('input',  () => { enforceInfConstraints(); lastMoved = 'p1';  draw(); });
+document.getElementById('sp2').addEventListener('input',  () => { enforceInfConstraints(); lastMoved = 'p2';  draw(); });
+document.getElementById('srho').addEventListener('input', () => {
+  const el = document.getElementById('srho');
+  if (Math.abs(+el.value - 50) <= 3) el.value = 50;
+  lastMoved = 'rho'; frozenAk = -1; draw();
+});
+
+document.getElementById('btnLock').addEventListener('click', () => {
+  if (lockedState) {
+    lockedState = null; iesMode = false; resetLockUI(); draw();
+  } else {
+    lockedState = {
+      goodMode,
+      ak:  goodMode === 'normal' ? frozenAk    : frozenAk_inf,
+      x1t: goodMode === 'normal' ? frozenX1t   : frozenX1t_inf,
+      x2t: goodMode === 'normal' ? frozenX2t   : frozenX2t_inf,
+      x1s: goodMode === 'normal' ? frozenX1s   : frozenX1s_inf,
+      x2s: goodMode === 'normal' ? frozenX2s   : frozenX2s_inf,
+    };
+    document.getElementById('btnLock').classList.add('locked');
+    document.getElementById('btnIESE').disabled = false;
+    draw();
+  }
+});
+
+document.getElementById('btnIESE').addEventListener('click', () => {
+  if (!lockedState) return;
+  iesMode = !iesMode;
+  document.getElementById('btnIESE').classList.toggle('active', iesMode);
+  draw();
+});
+
+document.getElementById('btnDemand').addEventListener('click', () => {
+  demandMode = !demandMode;
+  if (demandMode) enterDemandMode();
+  else            exitDemandMode();
+});
+
+document.getElementById('dsp1').addEventListener('input', () => {
+  if (!demandMode) return;
+  const p1new = +document.getElementById('dsp1').value;
+  document.getElementById('dvdp1').textContent = p1new.toFixed(2);
+
+  const x1new = computeX1star(dem_I, p1new, dem_p2, dem_goodMode, dem_rhoV);
+  demandPoints.push({ p1: p1new, x1: x1new });
+
+  // Keep IC graph in sync, detect IC snap
+  document.getElementById('sp1').value = p1new;
+  document.getElementById('vp1').textContent = p1new.toFixed(2);
+  lastMoved = 'p1';
+  const akBefore = dem_goodMode === 'normal' ? frozenAk : frozenAk_inf;
+  draw();
+  const akAfter = dem_goodMode === 'normal' ? frozenAk : frozenAk_inf;
+  if (akAfter !== akBefore) {
+    const key = `${Math.min(akBefore, akAfter)}_${Math.max(akBefore, akAfter)}`;
+    demandSnapPoints.set(key, { p1: p1new, x1: x1new });
+  }
+
+  updateDemandCurve();
+});
+
+draw();
+</script>
+</body>
+</html>
