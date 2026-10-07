@@ -145,6 +145,12 @@
       <label for="mG2">Good 2<br>inferior</label>
     </div>
     <button id="btnDemand" class="demand-btn">Demand Curve Mode</button>
+    <div id="demand-wrap">
+      <svg id="dcurve" width="228" height="200"></svg>
+      <div style="font-size:0.77rem;color:#888;margin-top:6px;margin-bottom:4px">
+        Move <em>p</em>₁ to trace &middot; change <em>I</em> or <em>p</em>₂ to shift
+      </div>
+    </div>
     <div id="sliders-wrap">
       <div id="lock-row">
         <button id="btnLock" class="lock-btn">Lock</button>
@@ -183,19 +189,6 @@
         <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#888;margin-top:2px">
           <span>straight</span><span>L-shaped</span>
         </div>
-      </div>
-    </div>
-    <div id="demand-wrap">
-      <svg id="dcurve" width="228" height="200"></svg>
-      <div class="sg" style="margin-top:8px;margin-bottom:8px">
-        <div class="row">
-          <span class="lbl">Price of Good 1 (<em>p</em>₁)</span>
-          <span class="val" id="dvdp1">1.00</span>
-        </div>
-        <input type="range" id="dsp1" min="0.30" max="3.00" step="0.05" value="1.00">
-      </div>
-      <div style="font-size:0.77rem;color:#888;margin-bottom:4px">
-        Frozen: <em>I</em> = <span id="dem-frozenI">—</span>, <em>p</em>₂ = <span id="dem-frozenP2">—</span>
       </div>
     </div>
   </div>
@@ -762,10 +755,6 @@ function draw() {
   const rhoV = +document.getElementById('srho').value;
   const rho  = goodMode === 'normal' ? getRho(rhoV) : 0;
 
-  document.getElementById('vI').textContent  = I;
-  document.getElementById('vp1').textContent = p1.toFixed(2);
-  document.getElementById('vp2').textContent = p2.toFixed(2);
-
   let U, ak, x1s, x2s, x1o, x2o;
   let infCorner = false;
 
@@ -839,6 +828,14 @@ function draw() {
     }
     x1s = frozenX1s; x2s = frozenX2s;
     x1o = frozenX1t; x2o = frozenX2t;
+  }
+
+  // Update slider labels only when the active IC changes
+  if (ak !== lastDisplayedAk) {
+    document.getElementById('vI').textContent  = I;
+    document.getElementById('vp1').textContent = p1.toFixed(2);
+    document.getElementById('vp2').textContent = p2.toFixed(2);
+    lastDisplayedAk = ak;
   }
 
   // Update IC styles
@@ -918,6 +915,7 @@ function draw() {
 let demandMode       = false;
 let demandPoints     = [];
 let demandSnapPoints = new Map(); // key: "akLo_akHi" → {p1, x1}
+let pastDemandCurves = [];
 let dem_I, dem_p2, dem_rhoV, dem_goodMode, dem_x1max;
 
 const DC_W = 228, DC_H = 200;
@@ -996,6 +994,16 @@ function buildDemandSVG() {
   ylEl.textContent = 'p₁';
   svg.appendChild(ylEl);
 
+  // Faded historical curves
+  pastDemandCurves.forEach(pts => {
+    const sorted = [...pts].sort((a, b) => a.p1 - b.p1);
+    const ptStr = sorted.map(p => `${dpx(p.x1).toFixed(1)},${dpy(p.p1).toFixed(1)}`).join(' ');
+    svg.appendChild(el('polyline', {
+      fill: 'none', stroke: '#1565c0', 'stroke-width': 1.5, opacity: 0.3,
+      'stroke-linejoin': 'round', 'stroke-linecap': 'round', points: ptStr
+    }));
+  });
+
   // Dynamic layers (polyline + dot appended last so they render on top)
   svg.appendChild(el('polyline', { id: 'dc-trace', fill: 'none',
     stroke: '#1565c0', 'stroke-width': 2,
@@ -1033,6 +1041,7 @@ function enterDemandMode() {
   dem_p2       = +document.getElementById('sp2').value;
   dem_rhoV     = +document.getElementById('srho').value;
   dem_goodMode = goodMode;
+  pastDemandCurves = [];
 
   const p1curr = +document.getElementById('sp1').value;
 
@@ -1048,13 +1057,8 @@ function enterDemandMode() {
   demandPoints     = [{ p1: p1curr, x1: x1curr }];
   demandSnapPoints = new Map();
 
-  document.getElementById('dsp1').value           = p1curr;
-  document.getElementById('dvdp1').textContent    = p1curr.toFixed(2);
-  document.getElementById('dem-frozenI').textContent  = dem_I;
-  document.getElementById('dem-frozenP2').textContent = dem_p2.toFixed(2);
-
-  document.getElementById('sliders-wrap').style.display = 'none';
   document.getElementById('demand-wrap').style.display  = 'block';
+  document.getElementById('lock-row').style.display     = 'none';
   document.getElementById('btnDemand').classList.add('active');
   document.querySelector('.toggle-group').classList.add('dmLocked');
 
@@ -1063,16 +1067,18 @@ function enterDemandMode() {
 }
 
 function exitDemandMode() {
-  document.getElementById('sliders-wrap').style.display = '';
+  pastDemandCurves = [];
   document.getElementById('demand-wrap').style.display  = 'none';
+  document.getElementById('lock-row').style.display     = '';
   document.getElementById('btnDemand').classList.remove('active');
   document.querySelector('.toggle-group').classList.remove('dmLocked');
 }
 
 // ── Event listeners ──────────────────────────────────────────────────────────
 
-let lastMoved = 'I';
-let frozenAk  = -1;
+let lastMoved       = 'I';
+let frozenAk        = -1;
+let lastDisplayedAk = -1;
 let frozenX1s = null, frozenX2s = null;
 let frozenX1t = null, frozenX2t = null;
 let goodMode  = 'normal';
@@ -1134,10 +1140,11 @@ function resetLockUI() {
 
 document.querySelectorAll('input[name=mode]').forEach(r => {
   r.addEventListener('change', () => {
-    goodMode     = r.value;
-    lastMoved    = 'I';
-    frozenAk     = -1;
-    frozenAk_inf = -1;
+    goodMode       = r.value;
+    lastMoved      = 'I';
+    frozenAk       = -1;
+    frozenAk_inf   = -1;
+    lastDisplayedAk = -1;
     if (lockedState) { lockedState = null; iesMode = false; resetLockUI(); }
     document.getElementById('rho-row').classList.toggle('hidden', goodMode !== 'normal');
     if (goodMode === 'normal') resetSliderConstraints(); else enforceInfConstraints();
@@ -1145,13 +1152,58 @@ document.querySelectorAll('input[name=mode]').forEach(r => {
   });
 });
 
-document.getElementById('sI').addEventListener('input',   () => { enforceInfConstraints(); lastMoved = 'I';   draw(); });
-document.getElementById('sp1').addEventListener('input',  () => { enforceInfConstraints(); lastMoved = 'p1';  draw(); });
-document.getElementById('sp2').addEventListener('input',  () => { enforceInfConstraints(); lastMoved = 'p2';  draw(); });
+document.getElementById('sI').addEventListener('input', () => {
+  enforceInfConstraints(); lastMoved = 'I'; draw();
+  if (demandMode) {
+    if (demandPoints.length > 1) pastDemandCurves.push([...demandPoints]);
+    dem_I = +document.getElementById('sI').value;
+    const p1c = +document.getElementById('sp1').value;
+    demandPoints     = [{ p1: p1c, x1: computeX1star(dem_I, p1c, dem_p2, dem_goodMode, dem_rhoV) }];
+    demandSnapPoints = new Map();
+    buildDemandSVG(); updateDemandCurve();
+  }
+});
+document.getElementById('sp1').addEventListener('input', () => {
+  enforceInfConstraints(); lastMoved = 'p1';
+  if (demandMode) {
+    const akBefore = dem_goodMode === 'normal' ? frozenAk : frozenAk_inf;
+    draw();
+    const akAfter = dem_goodMode === 'normal' ? frozenAk : frozenAk_inf;
+    const p1new = +document.getElementById('sp1').value;
+    const x1new = computeX1star(dem_I, p1new, dem_p2, dem_goodMode, dem_rhoV);
+    demandPoints.push({ p1: p1new, x1: x1new });
+    if (akAfter !== akBefore) {
+      const key = `${Math.min(akBefore, akAfter)}_${Math.max(akBefore, akAfter)}`;
+      demandSnapPoints.set(key, { p1: p1new, x1: x1new });
+    }
+    updateDemandCurve();
+  } else {
+    draw();
+  }
+});
+document.getElementById('sp2').addEventListener('input', () => {
+  enforceInfConstraints(); lastMoved = 'p2'; draw();
+  if (demandMode) {
+    if (demandPoints.length > 1) pastDemandCurves.push([...demandPoints]);
+    dem_p2 = +document.getElementById('sp2').value;
+    const p1c = +document.getElementById('sp1').value;
+    demandPoints     = [{ p1: p1c, x1: computeX1star(dem_I, p1c, dem_p2, dem_goodMode, dem_rhoV) }];
+    demandSnapPoints = new Map();
+    buildDemandSVG(); updateDemandCurve();
+  }
+});
 document.getElementById('srho').addEventListener('input', () => {
   const el = document.getElementById('srho');
   if (Math.abs(+el.value - 50) <= 3) el.value = 50;
   lastMoved = 'rho'; frozenAk = -1; draw();
+  if (demandMode) {
+    if (demandPoints.length > 1) pastDemandCurves.push([...demandPoints]);
+    dem_rhoV = +document.getElementById('srho').value;
+    const p1c = +document.getElementById('sp1').value;
+    demandPoints     = [{ p1: p1c, x1: computeX1star(dem_I, p1c, dem_p2, dem_goodMode, dem_rhoV) }];
+    demandSnapPoints = new Map();
+    buildDemandSVG(); updateDemandCurve();
+  }
 });
 
 document.getElementById('btnLock').addEventListener('click', () => {
@@ -1185,28 +1237,6 @@ document.getElementById('btnDemand').addEventListener('click', () => {
   else            exitDemandMode();
 });
 
-document.getElementById('dsp1').addEventListener('input', () => {
-  if (!demandMode) return;
-  const p1new = +document.getElementById('dsp1').value;
-  document.getElementById('dvdp1').textContent = p1new.toFixed(2);
-
-  const x1new = computeX1star(dem_I, p1new, dem_p2, dem_goodMode, dem_rhoV);
-  demandPoints.push({ p1: p1new, x1: x1new });
-
-  // Keep IC graph in sync, detect IC snap
-  document.getElementById('sp1').value = p1new;
-  document.getElementById('vp1').textContent = p1new.toFixed(2);
-  lastMoved = 'p1';
-  const akBefore = dem_goodMode === 'normal' ? frozenAk : frozenAk_inf;
-  draw();
-  const akAfter = dem_goodMode === 'normal' ? frozenAk : frozenAk_inf;
-  if (akAfter !== akBefore) {
-    const key = `${Math.min(akBefore, akAfter)}_${Math.max(akBefore, akAfter)}`;
-    demandSnapPoints.set(key, { p1: p1new, x1: x1new });
-  }
-
-  updateDemandCurve();
-});
 
 draw();
 </script>
