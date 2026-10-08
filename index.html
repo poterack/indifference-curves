@@ -125,6 +125,20 @@
     .toggle-group.dmLocked { opacity: 0.38; pointer-events: none; }
     #demand-wrap { display: none; margin-bottom: 14px; }
     #demand-wrap svg { display: block; }
+    #btnClearDemand {
+      width: 100%;
+      padding: 5px 0;
+      border-radius: 7px;
+      border: 1.5px solid #e0c0c0;
+      background: #fff5f5;
+      color: #a00;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 6px;
+      letter-spacing: 0.1px;
+    }
+    #btnClearDemand:hover { background: #ffe0e0; }
   </style>
 </head>
 <body>
@@ -150,6 +164,7 @@
       <div style="font-size:0.77rem;color:#888;margin-top:6px;margin-bottom:4px">
         Move <em>p</em>₁ to trace &middot; change <em>I</em> or <em>p</em>₂ to shift
       </div>
+      <button id="btnClearDemand">Clear demand curves</button>
     </div>
     <div id="sliders-wrap">
       <div id="lock-row">
@@ -1235,6 +1250,12 @@ document.getElementById('btnDemand').addEventListener('click', () => {
   demandMode = !demandMode;
   if (demandMode) enterDemandMode();
   else            exitDemandMode();
+});
+
+document.getElementById('btnClearDemand').addEventListener('click', () => {
+  pastDemandCurves = [];
+  buildDemandSVG();
+  updateDemandCurve();
 });
 
 
